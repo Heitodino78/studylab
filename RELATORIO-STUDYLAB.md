@@ -2,7 +2,7 @@
 
 **Data:** 16/11/2026.  
 **Versão analisada:** `a9baf8f1b2b6bedf8407d8d2abba60a48d71df66`.  
-**Revisão da documentação:** `060bf06395e3934cef1a1c63de04f0ddd2e96db8` (documentação; sem alteração no código da aplicação).
+**Versão ampliada deste relatório:** commit `76dc0a7a014e720434f7ddf1cf5aeadc57fd0b6b` (documentação; sem alteração no código da aplicação).
 **Finalidade:** registrar o que foi entregue, como foi desenvolvido, o que foi verificado, as limitações e as próximas melhorias.
 
 Este relatório reúne as evidências da implementação e da validação realizadas nesta sessão. Não representa uma auditoria exaustiva de todos os navegadores, combinações de dados ou situações de uso. Os resultados de testes e da auditoria de dependências correspondem à versão e à data indicadas.
