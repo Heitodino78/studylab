@@ -28,7 +28,7 @@ export function Store({ children }: { children: ReactNode }) {
       channel.current = current;
       current.onmessage = () => {
         queue.current = queue.current.then(async () => {
-          try { const latest = await load(); if (active) { setData(latest); setError('Dados atualizados em outra aba.'); } }
+          try { const latest = await load(); if (active) { setData(latest); setError(''); } }
           catch (reason) { if (active) setError('Não foi possível atualizar dados de outra aba: ' + String(reason)); }
         });
       };

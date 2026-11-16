@@ -4,12 +4,14 @@ import { type Data, type Item, type Kind } from '../models';
 import { Markdown } from '../components/Markdown';
 import { reviewCard } from '../domain/sm2';
 import { evaluateQuestion } from '../domain/questions';
+import { confirmAction } from '../components/Confirm';
 
 const labels: Record<string, string> = {
   subjects: 'Disciplinas', topics: 'Tópicos e subtópicos', notes: 'Biblioteca', questions: 'Exercícios',
   cards: 'Flashcards', tasks: 'Tarefas', goals: 'Metas', exams: 'Provas',
 };
 const newItem = (): Item => ({ id: crypto.randomUUID(), title: '', createdAt: Date.now() });
+const searchText = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
 const localDay = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -79,7 +81,7 @@ export function Collection({ kind }: { kind: Kind }) {
     (!difficulty || item.difficulty === difficulty) && (!status || (item.status || 'pendente') === status) &&
     (!priority || (item.priority || 'média') === priority) &&
     (!dueOnly || !item.schedule || item.schedule.dueAt <= Date.now()) &&
-    `${item.title} ${item.body || ''}`.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
+    searchText(`${item.title} ${item.body || ''}`).includes(searchText(query)));
   const pending = data.cards.filter(card => !card.schedule || card.schedule.dueAt <= Date.now()).length;
   const field = (key: keyof Item, value: string) => setDraft(current => current ? { ...current, [key]: key === 'title' ? value : (value || undefined) } : current);
   function edit(item: Item) { setDraft(item); setOptionsText(item.options?.join('\n') || ''); setFeedback(''); }
@@ -88,10 +90,14 @@ export function Collection({ kind }: { kind: Kind }) {
     event.preventDefault();
     if (!draft || !draft.title.trim()) return;
     const item: Item = { ...draft, title: draft.title.trim() };
+    if (kind === 'subjects' && !item.color) item.color = '#16745c';
+    if (kind === 'cards' && !item.body?.trim()) {
+      setFeedback('Preencha o verso do flashcard para poder revisá-lo.'); return;
+    }
     if (kind === 'questions') {
       item.options = optionsText.split('\n').map(line => line.trim()).filter(Boolean);
-      if (item.options.length && (!item.answer || !item.options.includes(item.answer) || new Set(item.options).size !== item.options.length)) {
-        setFeedback('Informe alternativas diferentes e uma resposta correta igual a uma delas.'); return;
+      if (item.options.length && (item.options.length < 2 || !item.answer || !item.options.includes(item.answer) || new Set(item.options).size !== item.options.length)) {
+        setFeedback('Informe pelo menos duas alternativas diferentes e uma resposta correta igual a uma delas.'); return;
       }
     }
     if (kind === 'goals' && (!item.period || !item.targetMinutes || item.targetMinutes < 1)) {
@@ -106,7 +112,7 @@ export function Collection({ kind }: { kind: Kind }) {
     const warning = kind === 'subjects' || kind === 'topics'
       ? 'Os vínculos serão removidos; tentativas e sessões serão preservadas. Subtópicos serão excluídos.'
       : 'O histórico será preservado quando aplicável.';
-    if (!confirm(`Excluir “${item.title}”? ${warning}`)) return;
+    if (!await confirmAction(`Excluir “${item.title}”? ${warning}`)) return;
     if (await update(current => removeItem(current, kind, item))) setFeedback('Registro excluído.');
   }
   async function answer(item: Item) {
@@ -167,7 +173,7 @@ export function Collection({ kind }: { kind: Kind }) {
     {feedback && <p role="status">{feedback}</p>}
     {draft && <form className="panel form" onSubmit={submit}>
       <h2>{data[kind].some(x => x.id === draft.id) ? 'Editar' : 'Novo registro'}</h2>
-      <label>Título<input required maxLength={500} value={draft.title} onChange={e => field('title', e.target.value)} /></label>
+      <label>Título<input autoFocus required maxLength={500} value={draft.title} onChange={e => field('title', e.target.value)} /></label>
       {kind !== 'subjects' && <label>Disciplina<select value={draft.subjectId || ''} onChange={e => setDraft({ ...draft, subjectId: e.target.value || undefined, topicId: undefined, parentId: undefined })}>
         <option value="">Sem disciplina</option>{data.subjects.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
       </select></label>}
@@ -195,7 +201,7 @@ export function Collection({ kind }: { kind: Kind }) {
       {['tasks','goals','exams'].includes(kind) && <label>Prazo<input type="date" value={draft.due || ''} onChange={e => field('due', e.target.value)} /></label>}
       {kind === 'goals' && <><label>Período<select required value={draft.period || ''} onChange={e => field('period', e.target.value)}><option value="">Selecione</option><option value="daily">Diário</option><option value="weekly">Semanal</option></select></label>
         <label>Meta em minutos<input required type="number" min="1" max="10080" value={draft.targetMinutes || ''} onChange={e => setDraft({ ...draft, targetMinutes: Number(e.target.value) })} /></label></>}
-      {kind === 'subjects' && <><label>Cor<input type="color" value={draft.color || '#6658df'} onChange={e => field('color', e.target.value)} /></label>
+      {kind === 'subjects' && <><label>Cor<input type="color" value={draft.color || '#16745c'} onChange={e => field('color', e.target.value)} /></label>
         <label>Ícone<input maxLength={8} value={draft.icon || ''} onChange={e => field('icon', e.target.value)} /></label></>}
       <div className="actions"><button type="submit">Salvar</button><button type="button" className="secondary" onClick={() => setDraft(null)}>Cancelar</button></div>
     </form>}
@@ -207,7 +213,7 @@ export function Collection({ kind }: { kind: Kind }) {
         <h2>{item.icon} {item.title}</h2>
         <p className="muted">{data.subjects.find(s => s.id === item.subjectId)?.title} {item.topicId && ` · ${topicPath(data, item.topicId)}`} {kind === 'topics' && item.parentId && ` · ${topicPath(data, item.parentId)}`} {item.status} {item.priority} {item.due && ` · ${item.due}${item.status !== 'concluído' && item.due < localDay() ? ' · atrasado' : ''}`}</p>
         {kind === 'goals' && item.period && <p>Meta {item.period === 'daily' ? 'diária' : 'semanal'}: {item.targetMinutes} minutos</p>}
-        {kind === 'subjects' && <p>Progresso: {completed}/{relatedTopics.length} tópicos concluídos {relatedTopics.length > 0 && `(${Math.round(100 * completed / relatedTopics.length)}%)`}</p>}
+        {kind === 'subjects' && <div><p>Progresso: {completed}/{relatedTopics.length} tópicos concluídos {relatedTopics.length > 0 && `(${Math.round(100 * completed / relatedTopics.length)}%)`}</p>{relatedTopics.length > 0 && <progress className="progress" aria-label={`Progresso em ${item.title}`} value={completed} max={relatedTopics.length} />}</div>}
         {kind === 'notes' ? <><Markdown text={item.body || ''} />{item.linkedNoteIds?.length ? <div><p>Notas relacionadas:</p><div className="actions">{item.linkedNoteIds.map(id => {
           const note = data.notes.find(n => n.id === id);
           return note ? <button className="secondary" key={id} onClick={() => { setQuery(''); setSubject(''); setTopic(''); requestAnimationFrame(() => document.getElementById(`record-${id}`)?.scrollIntoView({ behavior: 'smooth' })); }}>{note.title}</button> : null;
