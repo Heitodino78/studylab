@@ -1,6 +1,6 @@
 # Verificação da versão inicial
 
-Verificações realizadas em 2026-11-16. Este documento registra a validação local; o resultado de cada publicação está disponível em [GitHub Actions](https://github.com/Heitodino78/studylab/actions).
+Verificações realizadas em 2026-11-16. Este documento registra a validação da entrega; o resultado de cada publicação está disponível em [GitHub Actions](https://github.com/Heitodino78/studylab/actions). Veja também as [evidências de infraestrutura e QA online](VALIDACAO-E-PUBLICACAO.md).
 
 ## Testes automatizados
 

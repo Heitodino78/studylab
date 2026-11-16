@@ -5,6 +5,13 @@ Um espaço pessoal para estudar, praticar e acompanhar o aprendizado. Todas as d
 **Aplicação:** https://heitodino78.github.io/studylab/  
 **Código:** https://github.com/Heitodino78/studylab
 
+## Documentação do projeto
+
+- **[Relatório completo do StudyLab](RELATORIO-STUDYLAB.md):** o que foi feito, como foi desenvolvido, o que funciona, limitações, melhorias e funcionalidades futuras.
+- [Índice de toda a documentação](docs/README.md).
+- [Roadmap e pendências priorizadas](docs/ROADMAP.md).
+- [Evidências de testes e publicação](docs/VALIDACAO-E-PUBLICACAO.md).
+
 ## Funcionalidades
 
 - **Visão geral:** saudação personalizável, foco do dia/semana, metas mensuráveis, revisões, exercícios, prazos, sequência de estudo e gráficos de dados registrados.
