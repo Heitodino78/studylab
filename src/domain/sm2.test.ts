@@ -10,3 +10,4 @@ describe('SM-2', () => {
   });
   it('rejects invalid grades', () => expect(() => reviewCard({ repetitions: 0, intervalDays: 0, easeFactor: 2.5, dueAt: 0 }, 6, 0)).toThrow());
 });
+it('limita facilidade e usa intervalo anterior após terceira revisão',()=>{const base={repetitions:2,intervalDays:6,easeFactor:2.5,dueAt:0};expect(reviewCard(base,4,0).intervalDays).toBe(15);expect(reviewCard({...base,easeFactor:1.3},0,0).easeFactor).toBe(1.3)});
