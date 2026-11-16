@@ -2,6 +2,7 @@
 
 **Data:** 16/11/2026.  
 **Versão analisada:** `a9baf8f1b2b6bedf8407d8d2abba60a48d71df66`.  
+**Revisão da documentação:** `060bf06395e3934cef1a1c63de04f0ddd2e96db8` (documentação; sem alteração no código da aplicação).
 **Finalidade:** registrar o que foi entregue, como foi desenvolvido, o que foi verificado, as limitações e as próximas melhorias.
 
 Este relatório reúne as evidências da implementação e da validação realizadas nesta sessão. Não representa uma auditoria exaustiva de todos os navegadores, combinações de dados ou situações de uso. Os resultados de testes e da auditoria de dependências correspondem à versão e à data indicadas.
@@ -143,6 +144,44 @@ Referências de implementação na versão analisada: [persistência e validaç�
 - Todas as combinações possíveis de alteração e exclusão de entidades vinculadas.
 
 Nos fluxos de aceitação executados, não ficou registrado um bloqueador que impedisse o uso básico ou o acesso ao site publicado. Isso não equivale a afirmar que a aplicação esteja livre de bugs.
+
+### 5.4 Inventário de escopo: completo, parcial e ausente
+
+“Completo” aqui significa que o fluxo descrito foi implementado e que há evidência indicada neste relatório; não significa cobertura de todas as combinações, dispositivos ou navegadores. “Parcial” indica uma versão utilizável com limites conhecidos. “Ausente” significa que o recurso não existe nesta versão.
+
+| Recurso | Estado | O que o estudante consegue fazer hoje | Limite ou próximo passo |
+| --- | --- | --- | --- |
+| Primeira utilização e dados vazios | Implementado | Abrir o app sem conteúdo e começar pelo cadastro de disciplinas, metas, notas ou cartões | Não há dados de demonstração, onboarding guiado ou conta |
+| Dashboard | Implementado | Ver resumo derivado dos próprios registros, metas, revisões, atividade recente e atalhos | Sem registros, os indicadores ficam vazios/zerados; não há previsão ou estatística fictícia |
+| Disciplinas e assuntos | Implementado com ressalva | Criar e editar disciplinas, cores, ícones, tópicos e subtópicos; marcar prioridade/status e acompanhar progresso | Mover tópico entre disciplinas com descendentes e itens vinculados precisa de operação segura; consultar §5.2 |
+| Notas | Implementado em Markdown básico | Criar, editar, buscar, vincular a disciplina/assunto e relacionar notas; usar títulos, listas, ênfase, links HTTP(S) e blocos de código | Sem editor visual completo, imagens, tabelas, anexos, histórico de versões ou renderização de fórmulas |
+| Questões objetivas | Implementado | Cadastrar alternativas, resposta, explicação, assunto e dificuldade; filtrar, responder e consultar tentativas | O banco é pessoal e manual; não há importação em lote ou catálogo compartilhado |
+| Questões discursivas | Implementado com avaliação manual | Registrar resposta e nota manual; rever histórico e incluir a avaliação nas estatísticas quando concluída | Não há correção automática; respostas pendentes não contam como avaliadas |
+| Flashcards e revisão espaçada | Implementado | Criar cartões, revelar resposta, avaliar lembrança e rever cartões vencidos; ver próxima data calculada | Variante simples documentada de SM-2; sem fila de sessão avançada, notificações garantidas ou sincronização |
+| Tarefas, metas e provas | Implementado em nível essencial | Definir tarefas com prioridade/data, metas por minutos e provas/datas; identificar atraso e visualizar cronograma | Não há calendário externo, recorrências, arrastar-e-soltar ou alertas quando o app está fechado |
+| Modo Foco | Implementado | Usar cronômetro livre ou Pomodoro configurável, pausar, retomar, reiniciar, associar disciplina e consultar sessões | Avisos dependem do navegador aberto; testar sistematicamente suspensão prolongada e dispositivos adicionais continua pendente |
+| Estatísticas e dificuldades | Implementado com regras transparentes | Ver séries temporais, tempo, frequência, exercícios, revisões, taxa de acerto e assuntos com erros | Recomendações são regras determinísticas, não IA; comparação de períodos e exportação CSV ainda não existem |
+| Simulados | Implementado | Selecionar questões por disciplina/assunto/dificuldade, responder, finalizar, rever snapshots e consultar resultados | Temporizador informa e encerra pelo prazo; não há experiência de prova com fullscreen, pausa configurável ou catálogo externo |
+| Tema e preferências | Implementado | Definir nome, tema e parâmetros de metas/Pomodoro | Preferências são locais ao navegador e não sincronizam entre dispositivos |
+| Exportar e importar backup | Implementado com ressalva de tamanho/recuperação | Exportar JSON versionado, importar versão suportada, validar e confirmar substituição; exportar dados brutos para recuperação | A restauração pela interface após erro de abertura e o limite desigual de exportação/importação precisam de melhoria (§5.2) |
+| Armazenamento | Implementado localmente | Manter dados no IndexedDB do navegador; atualizações usam transação e fila e avisam outras abas | Limpeza do perfil pode apagar tudo; não há cópia em nuvem. Concorrência de domínio foi testada com fake-indexeddb, não em matriz real de browsers |
+| Acessibilidade e responsividade | Verificado parcialmente | Navegar pelas rotas em tela pequena, usar diálogos próprios e encontrar alternativas textuais para gráficos | Verificação visual em Chromium não substitui auditoria completa com teclado, leitor de tela, Firefox/Safari e aparelhos físicos |
+| Publicação | Implementado e verificado | Abrir o site público em GitHub Pages; atualizar a página preserva o roteamento por hash | Depende da disponibilidade do GitHub Pages/Actions; esta versão não possui backend nem SLA próprio |
+| Conta, nuvem e colaboração | Ausente | — | Exigem backend, autenticação real, autorização, sincronização e resolução de conflitos |
+| PWA/offline garantido | Ausente | — | Exige service worker, política de atualização/cache e testes de instalação/offline |
+| Fórmulas renderizadas, PDF e IA | Ausentes | — | São possibilidades futuras; não devem ser interpretadas como recursos atuais |
+
+### 5.5 Caminhos principais para usar os módulos
+
+1. **Começar:** abra “Disciplinas”, crie uma matéria e seus assuntos; ajuste seu nome, aparência e metas em “Configurações”.
+2. **Guardar conhecimento:** crie uma nota na “Biblioteca”, associe-a à matéria/assunto e use a busca para recuperá-la. O editor aceita Markdown básico; conteúdo HTML não é tratado como HTML ativo.
+3. **Praticar:** cadastre questões em “Exercícios”. Questões objetivas são corrigidas pelo gabarito cadastrado. Para uma discursiva, o próprio estudante atribui a avaliação manualmente.
+4. **Revisar:** cadastre frente/verso em “Flashcards”; durante a revisão, revele a resposta e escolha uma avaliação de lembrança. Essa avaliação agenda a próxima revisão segundo a regra SM-2 implementada.
+5. **Planejar e estudar:** registre tarefas, metas e provas em “Planejamento”; inicie o foco livre ou Pomodoro e associe a sessão a uma matéria quando desejar.
+6. **Medir e simular:** consulte “Estatísticas” para dados registrados e regras de dificuldade; em “Simulados”, escolha filtros e quantidade, responda e finalize para ver o resultado e revisar as questões.
+7. **Proteger os dados:** em “Configurações”, exporte backups periodicamente. Antes de importar, confira a prévia e confirme a substituição. Guarde uma cópia fora do navegador.
+
+Os nomes e caminhos são os da navegação atual. Como não há onboarding, este roteiro também explicita a ordem sugerida para a primeira sessão.
 
 ## 6. Arquitetura e decisões técnicas
 
