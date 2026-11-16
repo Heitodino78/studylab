@@ -93,4 +93,4 @@ Prioridades futuras: PWA/offline, importação de materiais e renderização mat
 
 ## Licença
 
-Código e recursos próprios sob [MIT](LICENSE). Dependências mantêm suas respectivas licenças, disponíveis nas distribuições dos pacotes.
+Código e recursos próprios sob [MIT](LICENSE). As licenças e atribuições das dependências de produção estão preservadas em [licenses.txt](public/licenses.txt), também distribuído com o site.
