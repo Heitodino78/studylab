@@ -35,3 +35,16 @@ describe('backup', () => {
     expect(() => validate(data)).toThrow();
   });
 });
+it('aplica os mesmos limites de preferências dos ajustes', () => {
+  const valid = emptyData(); valid.settings = { displayName: 'a'.repeat(60), theme: 'system', dailyMinutes: 1440, weeklyMinutes: 10080,
+    pomodoro: { focusMinutes: 180, shortBreakMinutes: 60, longBreakMinutes: 120, cyclesBeforeLongBreak: 12 } };
+  expect(() => validate(valid)).not.toThrow();
+  for (const change of [
+    (d: typeof valid) => { d.settings.displayName = 'x'.repeat(61); },
+    (d: typeof valid) => { d.settings.weeklyMinutes = d.settings.dailyMinutes - 1; },
+    (d: typeof valid) => { d.settings.pomodoro.focusMinutes = 181; },
+    (d: typeof valid) => { d.settings.pomodoro.shortBreakMinutes = 61; },
+    (d: typeof valid) => { d.settings.pomodoro.longBreakMinutes = 121; },
+    (d: typeof valid) => { d.settings.pomodoro.cyclesBeforeLongBreak = 13; },
+  ]) { const data = structuredClone(valid); change(data); expect(() => validate(data)).toThrow(); }
+});

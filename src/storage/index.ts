@@ -35,17 +35,20 @@ function snapshot(value: unknown): asserts value is QuestionSnapshot {
 }
 function validateSettings(value: unknown) {
   keys(value, ['displayName','theme','dailyMinutes','weeklyMinutes','pomodoro']);
-  string(value.displayName, 100); choice(value.theme, ['light','dark','system']);
+  string(value.displayName, 60); choice(value.theme, ['light','dark','system']);
   number(value.dailyMinutes, 1, 1440, true); number(value.weeklyMinutes, 1, 10080, true);
+  if (value.weeklyMinutes < value.dailyMinutes) throw Error('Meta semanal menor que a diária');
   keys(value.pomodoro, ['focusMinutes','shortBreakMinutes','longBreakMinutes','cyclesBeforeLongBreak']);
-  for (const k of ['focusMinutes','shortBreakMinutes','longBreakMinutes']) number(value.pomodoro[k], 1, 240, true);
-  number(value.pomodoro.cyclesBeforeLongBreak, 1, 20, true);
+  number(value.pomodoro.focusMinutes, 1, 180, true);
+  number(value.pomodoro.shortBreakMinutes, 1, 60, true);
+  number(value.pomodoro.longBreakMinutes, 1, 120, true);
+  number(value.pomodoro.cyclesBeforeLongBreak, 1, 12, true);
 }
 function validateFocus(value: unknown) {
   keys(value, ['id','mode','phase','startedAt','accumulatedMs','subjectId','cycle','durationMinutes']);
   string(value.id, 500, false); choice(value.mode, ['pomodoro','stopwatch']); choice(value.phase, ['focus','shortBreak','longBreak']);
   if (value.startedAt !== null) number(value.startedAt); number(value.accumulatedMs); string(value.subjectId, 500);
-  number(value.cycle, 0, 100000, true); number(value.durationMinutes, 1, 240, true);
+  number(value.cycle, 0, 100000, true); number(value.durationMinutes, 1, 180, true);
 }
 function validateRun(value: unknown) {
   if (value === null) return;
