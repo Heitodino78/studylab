@@ -1,7 +1,37 @@
-import { describe,it,expect } from 'vitest';
-import { parseBackup,validate } from './index';
+import { describe, it, expect } from 'vitest';
+import { exportBackup, parseBackup, validate } from './index';
 import { emptyData } from '../models';
-describe('backup',()=>{it('aceita estrutura vazia versionada',()=>expect(parseBackup(JSON.stringify({version:1,data:emptyData()}))).toEqual(emptyData()));it('rejeita versão e campos desconhecidos',()=>{expect(()=>parseBackup(JSON.stringify({version:2,data:emptyData()}))).toThrow();expect(()=>validate({...emptyData(),extra:[]})).toThrow()});it('rejeita referências inexistentes',()=>{const d=emptyData();d.topics.push({id:'1',title:'T',createdAt:0,subjectId:'missing'});expect(()=>validate(d)).toThrow()});});
-it('rejeita ciclos, ids repetidos e referências de simulado ausentes',()=>{const d=emptyData();d.topics.push({id:'a',title:'A',createdAt:0,parentId:'b'},{id:'b',title:'B',createdAt:0,parentId:'a'});expect(()=>validate(d)).toThrow();const dup=emptyData();dup.subjects.push({id:'x',title:'A',createdAt:0},{id:'x',title:'B',createdAt:0});expect(()=>validate(dup)).toThrow();const sim=emptyData();sim.simulations.push({id:'s',title:'S',createdAt:0,questionIds:['missing']});expect(()=>validate(sim)).toThrow()});
-it('rejeita JSON malformado e arquivo excessivo',()=>{expect(()=>parseBackup('{')).toThrow();expect(()=>parseBackup(' '.repeat(10_000_001))).toThrow()});
-it('rejeita alternativas inconsistentes e pontuação inválida',()=>{const d=emptyData();d.questions.push({id:'q',title:'Q',createdAt:0,options:['A','B'],answer:'C'});expect(()=>validate(d)).toThrow();const d2=emptyData();d2.attempts.push({id:'a',title:'A',createdAt:0,score:2,total:1});expect(()=>validate(d2)).toThrow()});
+
+describe('backup', () => {
+  it('exporta e importa versão 2 completa, incluindo foco e preferências', () => {
+    const data = emptyData(); data.settings.displayName = 'Pessoa'; data.focus.accumulatedMs = 123;
+    expect(parseBackup(exportBackup(data))).toEqual(data);
+  });
+  it('migra versão 1 com defaults seguros', () => {
+    const { settings: _settings, focus: _focus, activeSimulation: _run, reviews: _reviews, ...old } = emptyData();
+    expect(parseBackup(JSON.stringify({ version: 1, data: old }))).toEqual(emptyData());
+  });
+  it('rejeita versões, campos e números inválidos', () => {
+    expect(() => parseBackup(JSON.stringify({ version: 3, data: emptyData() }))).toThrow();
+    expect(() => validate({ ...emptyData(), extra: [] })).toThrow();
+    const data = emptyData(); data.settings.pomodoro.focusMinutes = Infinity;
+    expect(() => validate(data)).toThrow();
+  });
+  it('rejeita referências, duplicatas e ciclos', () => {
+    const data = emptyData(); data.topics.push({ id: '1', title: 'T', createdAt: 0, subjectId: 'missing' });
+    expect(() => validate(data)).toThrow();
+    const duplicate = emptyData(); duplicate.subjects.push({ id: 's', title: 'A', createdAt: 0 }, { id: 's', title: 'B', createdAt: 0 });
+    expect(() => validate(duplicate)).toThrow();
+    const cycle = emptyData(); cycle.topics.push({ id: 'a', title: 'A', createdAt: 0, parentId: 'b' }, { id: 'b', title: 'B', createdAt: 0, parentId: 'a' });
+    expect(() => validate(cycle)).toThrow();
+  });
+  it('rejeita JSON malformado, tamanho excessivo e alternativas inválidas', () => {
+    expect(() => parseBackup('{')).toThrow(); expect(() => parseBackup(' '.repeat(10_000_001))).toThrow();
+    const data = emptyData(); data.questions.push({ id: 'q', title: 'Q', createdAt: 0, options: ['A', 'B'], answer: 'C' });
+    expect(() => validate(data)).toThrow();
+  });
+  it('rejeita snapshot e respostas inconsistentes', () => {
+    const data = emptyData(); data.activeSimulation = { id: 'r', title: 'R', questions: [{ id: 'q', title: 'Q', body: '', options: ['A'], answer: 'A', explanation: '' }], answers: { extra: 'A' }, startedAt: 1, deadline: null };
+    expect(() => validate(data)).toThrow();
+  });
+});
