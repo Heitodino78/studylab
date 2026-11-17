@@ -7,6 +7,13 @@
 
 Este relatório reúne as evidências da implementação e da validação realizadas nesta sessão. Não representa uma auditoria exaustiva de todos os navegadores, combinações de dados ou situações de uso. Os resultados de testes e da auditoria de dependências correspondem à versão e à data indicadas.
 
+## Resumo executivo
+
+- **Estado:** versão 0.1.0 publicada, funcional para uso pessoal e local, com 84 testes automatizados aprovados (reexecutados em 16/11/2026 em Node 22).
+- **Forças:** núcleo de domínio testado (foco, simulados, análises, SM-2), gravações atômicas, resultados de simulados preservados por cópias das questões, instalação vazia sem dados fictícios, publicação reproduzível por Actions.
+- **Principais riscos:** perda de dados por limpeza do navegador (sem nuvem), recuperação após falha de leitura incompleta, movimentação de assuntos entre disciplinas sem operação segura e ausência de testes de navegador automatizados.
+- **Decisão recomendada:** usar em sessões reais, manter backups periódicos e fechar os três pontos de confiabilidade (§5.2) antes de acrescentar recursos novos (§9).
+
 ## 1. Resultado da entrega
 
 O StudyLab foi implementado, testado, versionado no GitHub e publicado no GitHub Pages. A aplicação pública foi aberta e testada no navegador.
@@ -19,6 +26,28 @@ O StudyLab foi implementado, testado, versionado no GitHub e publicado no GitHub
 - **Build:** verificação de tipos TypeScript e build Vite aprovados.
 - **Dependências:** auditoria npm registrou zero vulnerabilidades após as atualizações.
 - **Interface:** 13 rotas verificadas em largura de 390 px, sem erro de renderização ou rolagem horizontal; conferência adicional em desktop de 1440 px.
+
+### Métricas verificadas (16/11/2026)
+
+| Item | Valor |
+| --- | --- |
+| Commits no repositório local | 11 (HEAD `03cd5df`) |
+| Código-fonte em `src/` | cerca de 3.000 linhas de TypeScript/TSX nos arquivos de páginas, domínio e armazenamento, mais `style.css` |
+| Dependências de produção | 3: `react`, `react-dom`, `react-router-dom` |
+| Testes | 84 aprovados, 0 falhas, 11 arquivos |
+
+| Arquivo de teste | Testes | Cobre |
+| --- | --- | --- |
+| `domain/focus.test.ts` | 21 | Timer por timestamps, Pomodoro, idempotência, validação de preferências |
+| `domain/simulation.test.ts` | 20 | Seleção, snapshots, prazo, finalização idempotente, assunto movido de disciplina |
+| `domain/analytics.test.ts` | 17 | Séries, acertos, sequência, metas, recomendações com regra explícita |
+| `storage/index.test.ts` | 7 | Validação, backup v1/v2, limites |
+| `storage/integration.test.ts` | 4 | Integração armazenamento e domínio |
+| `storage/persistence.test.ts` | 3 | Transações e concorrência com IndexedDB simulado |
+| `domain/sm2.test.ts`, `domain/stats.test.ts` | 3 + 3 | Intervalos SM-2; assuntos fracos |
+| `components/Markdown.test.tsx`, `pages/Collection.test.tsx`, `domain/questions.test.ts` | 2 + 2 + 2 | Renderização segura, formulários, correção objetiva |
+
+Os testes cobrem domínio e armazenamento. As páginas de ferramentas (Dashboard, Estatísticas, Foco, Simulados, Configurações) não têm teste de renderização automatizado; foram conferidas no navegador.
 
 A instalação começa vazia. Os números apresentados são calculados a partir do que o estudante registra. Os dados sintéticos utilizados nos testes online foram removidos pela interface ao final da validação. Nenhum dado real de estudos, credencial ou arquivo do cofre foi publicado.
 
@@ -99,6 +128,11 @@ As verificações abaixo combinam testes automatizados, inspeção da implementa
 - Uma questão em branco reduz a nota do simulado, mas não cria uma tentativa de exercício como se tivesse sido respondida.
 - O Pomodoro registra no máximo a duração-alvo e prepara uma pausa parada. O tempo de ausência após o fim do foco não é acrescentado como estudo.
 - As sugestões são produzidas por regras estatísticas identificadas na interface.
+- Simulados: ao finalizar, o `topicId` de uma tentativa só é mantido quando o assunto ainda pertence à disciplina guardada; caso contrário a tentativa é desassociada do assunto, e o histórico original permanece no snapshot do simulado.
+- Finalização é idempotente: concluir o mesmo simulado ou a mesma fase de foco duas vezes (duas abas, recarga) não duplica sessões nem tentativas, pois os identificadores são determinísticos.
+- Uma sessão de foco com menos de 1 segundo é descartada; a sessão guarda a disciplina somente se ela ainda existir.
+- As recomendações exigem ao menos 3 respostas avaliadas e acerto inferior a 70% para marcar um assunto como fraco.
+- Metas e semanas seguem segunda a domingo; todos os cálculos usam o relógio e o fuso do dispositivo.
 - Os dados do estudante ficam no navegador; a publicação no GitHub contém o código e os recursos da aplicação.
 
 ## 5. O que não está disponível e o que exige atenção
@@ -183,6 +217,21 @@ Nos fluxos de aceitação executados, não ficou registrado um bloqueador que im
 
 Os nomes e caminhos são os da navegação atual. Como não há onboarding, este roteiro também explicita a ordem sugerida para a primeira sessão.
 
+### 5.6 Registro de riscos
+
+| Risco | Impacto | Probabilidade estimada | Mitigação atual | Ação recomendada |
+| --- | --- | --- | --- | --- |
+| Limpeza do navegador apaga o IndexedDB | Alto: perda total dos dados | Média, depende do uso | Exportação de backup manual | Lembrete periódico e verificação de backup (§7) |
+| Backup exportado maior que 10 MB não é aceito pelo importador | Alto: backup inutilizável | Baixa para uso individual | Nenhuma além do aviso do limite na importação | Alinhar limites e informar o tamanho ao exportar |
+| Falha de leitura bloqueia gravações | Médio: o app fica somente leitura, com exportação bruta | Baixa | Bloqueio protege os dados e há exportação bruta | Modo de recuperação com restauração confirmada |
+| Mover assunto com filhos ou materiais é recusado pela validação | Médio: fluxo frustrante, sem corrupção | Média | A validação impede gravar vínculos inconsistentes | Operação de movimentação com prévia de impacto |
+| Duas abas editando ao mesmo tempo | Médio | Baixa | Transações atômicas, fila e BroadcastChannel testados com IndexedDB simulado | Teste em navegadores reais |
+| Relógio do dispositivo alterado ou suspensão prolongada | Baixo a médio: tempos de foco e prazos imprecisos | Baixa | Cálculo por timestamps; relógio retrocedendo conta zero | Ampliar testes de suspensão |
+| Regressão em páginas sem teste automatizado | Médio | Média a cada mudança | Verificação manual e testes de domínio | Testes de ponta a ponta no navegador |
+| Dependências desatualizadas | Médio | Cresce com o tempo | Auditoria npm sem vulnerabilidades nesta versão; lockfile | Repetir `npm audit` a cada alteração relevante |
+
+As probabilidades são estimativas qualitativas do autor, sem base estatística de uso.
+
 ## 6. Arquitetura e decisões técnicas
 
 | Área | Decisão |
@@ -197,6 +246,21 @@ Os nomes e caminhos são os da navegação atual. Como não há onboarding, este
 | Visual | CSS próprio, ícones SVG próprios e gráficos sem dependência de uma biblioteca de gráficos |
 | Publicação | GitHub Actions publica `dist/` somente após testes e build |
 | Licenças | MIT para o projeto e atribuições das dependências de produção distribuídas em `licenses.txt` |
+
+### Estrutura do código
+
+| Pasta | Conteúdo |
+| --- | --- |
+| `src/models` | Tipos de dados e contrato do armazenamento (`Data`, `Item`, `FocusState`, `SimulationRun`) |
+| `src/storage` | IndexedDB com um documento único, validação, atualização atômica, backup v1/v2 e exportação bruta |
+| `src/context` | `Store`: fila de gravações e sincronização entre abas |
+| `src/domain` | Funções puras: `focus`, `simulation`, `analytics`, `sm2`, `questions`, `stats` |
+| `src/pages` | Disciplinas, biblioteca, exercícios, cartões, planejamento (`Collection`) e ferramentas (`tools/`) |
+| `src/components` | Confirmação acessível, Markdown seguro, ícones e limite de erros |
+
+Cada alteração passa por funções de atualização puras e idempotentes aplicadas por `update()`, o que permite testá-las sem interface e repeti-las com segurança.
+
+O cálculo de acerto por disciplina vive em `analytics.ts`; `stats.ts` (assuntos fracos) o reutiliza, evitando duas regras divergentes.
 
 A separação entre interface, domínio e armazenamento facilita acrescentar uma API no futuro. Essa preparação não significa que a sincronização esteja pronta: autenticação, autorização, conflitos, migrações remotas e regras de acesso ainda precisarão ser desenvolvidos.
 
@@ -255,7 +319,30 @@ Essas propostas são possibilidades de evolução; não foram implementadas nest
 
 Não foram atribuídas estimativas de prazo, créditos ou custo sem medição e definição adicional de escopo.
 
-## 10. Evidências e documentação
+## 10. Como reproduzir a verificação
+
+```bash
+npm ci
+npm test          # vitest run: 84 testes
+npm run build     # tsc --noEmit && vite build
+npm audit         # dependências
+npm run dev       # preview local
+```
+
+Requer Node 22.12 ou superior. Ao verificar o relatório, compare o resultado com a tabela de métricas; divergências indicam que o código mudou depois da versão analisada.
+
+## 11. Glossário
+
+| Termo | Significado |
+| --- | --- |
+| Snapshot | Cópia da questão (enunciado, alternativas, gabarito) feita ao iniciar um simulado |
+| SM-2 | Algoritmo de revisão espaçada; avaliações de 0 a 5 definem o próximo intervalo |
+| Idempotente | Repetir a operação não muda o resultado nem duplica registros |
+| Backup v2 | Formato JSON versionado exportado pelo app; o v1 é aceito e migrado |
+| Exportação bruta | Cópia dos dados armazenados sem validação, usada para recuperação |
+| HashRouter | Rotas após `#`, que funcionam no GitHub Pages sem configuração do servidor |
+
+## 12. Evidências e documentação
 
 - [README da versão publicada](https://github.com/Heitodino78/studylab/blob/a9baf8f/README.md).
 - [Decisões de arquitetura](https://github.com/Heitodino78/studylab/blob/a9baf8f/docs/ARCHITECTURE.md).
